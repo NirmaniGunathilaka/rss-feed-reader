@@ -105,9 +105,9 @@ public class RSSFeedController {
     public ResponseEntity<Map<String, Object>> fetchRssFeeds() throws RSSFeedException {
         logger.info("Retrieve rss feed from url started");
         Map<String, Object> result = new HashMap<>();
-        List<FeedItemInfo> feedItemInfos = rssFeedService.retrieveRssFeed("http://rss.cnn.com/rss/cnn_topstories.rss");
-        result.put("feed item count",new Integer(feedItemInfos.size()));
-        result.put("feed data", feedItemInfos);
+        List<FeedItemInfo> feedItemInfoList = rssFeedService.retrieveRssFeed("http://rss.cnn.com/rss/cnn_topstories.rss");
+        result.put("feed item count", new Integer(feedItemInfoList.size()));
+        result.put("feed data", feedItemInfoList);
         logger.info("Retrieve rss feed from url ends");
         return ResponseEntity.status(HttpStatus.OK).body(result);
     }
