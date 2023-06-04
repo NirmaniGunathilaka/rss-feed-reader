@@ -1,7 +1,7 @@
 package com.example.rssfeedreader.scheduler;
 
 import com.example.rssfeedreader.dtos.FeedItemInfo;
-import com.example.rssfeedreader.exceptions.RSSException;
+import com.example.rssfeedreader.exceptionhandling.exceptions.RSSFeedException;
 import com.example.rssfeedreader.intf.RSSFeedService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +20,9 @@ public class RSSFeedReaderScheduler {
     @Autowired
     RSSFeedService rssFeedService;
 
-    @Scheduled(cron = "${rss.feed.scheduler.cron}")
-    public void feedReaderSchedulerJob() throws RSSException {
-        logger.info("Job scheduler started");
-        List<FeedItemInfo> itemInfos = rssFeedService.retrieveRssFeed("http://rss.cnn.com/rss/cnn_topstories.rss");
-        rssFeedService.storeFeedItems(itemInfos);
+    @Scheduled(cron = "${job.scheduler.cron}")
+    public void feedReaderSchedulerJob() throws RSSFeedException {
+        List<FeedItemInfo> feedItemInfoList = rssFeedService.retrieveRssFeed("http://rss.cnn.com/rss/cnn_topstories.rss");
+        rssFeedService.storeFeedItems(feedItemInfoList);
     }
 }
