@@ -1,6 +1,7 @@
 package com.example.rssfeedreader.services;
 
 import com.example.rssfeedreader.dtos.FeedItemInfo;
+import com.example.rssfeedreader.dtos.ResultObject;
 import com.example.rssfeedreader.entites.FeedItem;
 import com.example.rssfeedreader.exceptions.RSSException;
 import com.example.rssfeedreader.intf.RSSFeedService;
@@ -14,6 +15,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import java.net.URL;
 import java.time.LocalDateTime;
@@ -107,5 +111,30 @@ public class RSSFeedServiceImpl implements RSSFeedService {
                 feedItemRepository.save(feedItem);
             }
         }
+    }
+
+    public List<FeedItemInfo> fetchLatestItems(){
+        List<FeedItemInfo> feedItemInfoList = new ArrayList<>();
+        List<FeedItem> feedItems = feedItemRepository.findTop10ByOrderByCreatedTimeAtDesc();
+        for(FeedItem feedItem:feedItems){
+            ModelMapper modelMapper = new ModelMapper();
+            FeedItemInfo feedItemInfo = modelMapper.map(feedItem, FeedItemInfo.class);
+            feedItemInfoList.add(feedItemInfo);
+        }
+        return feedItemInfoList;
+    }
+
+    public ResultObject<FeedItem> fetchPaginatedItems(Integer limit, Integer offset, String sort, String direction) throws RSSException {
+        if (limit <= 0) {
+            throw new RSSException("Pagination attribute 'limit' must be greater than 0");
+        }
+        PageRequest pageRequest;
+        if(direction.equalsIgnoreCase("asc")){
+             pageRequest = PageRequest.of(offset, limit, Sort.by(sort).ascending());
+        }else{
+             pageRequest = PageRequest.of(offset, limit, Sort.by(sort));
+        }
+        Page<FeedItem> feedItemPage = feedItemRepository.findAll(pageRequest);
+        return new ResultObject<FeedItem>(feedItemPage.getContent(), feedItemPage.getTotalElements());
     }
     }

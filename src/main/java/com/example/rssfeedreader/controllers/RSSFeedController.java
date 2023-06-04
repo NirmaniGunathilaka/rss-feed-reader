@@ -1,6 +1,8 @@
 package com.example.rssfeedreader.controllers;
 
 import com.example.rssfeedreader.dtos.FeedItemInfo;
+import com.example.rssfeedreader.dtos.ResultObject;
+import com.example.rssfeedreader.entites.FeedItem;
 import com.example.rssfeedreader.exceptions.RSSException;
 import com.example.rssfeedreader.intf.RSSFeedService;
 import com.example.rssfeedreader.scheduler.RSSFeedReaderScheduler;
@@ -114,5 +116,26 @@ public class RSSFeedController {
     public ResponseEntity<String> runJobScheduler() throws RSSException {
         rssFeedReaderScheduler.feedReaderSchedulerJob();
         return ResponseEntity.status(HttpStatus.OK).body("SUCCESS");
+    }
+
+    @GetMapping("/items")
+    @ApiOperation(value = "Retrieve latest rss feed 10 items from url",
+            notes = "Read and retrieve latest rss feed 10 items from public rss feed url.",
+            response = Map.class)
+    public ResponseEntity<Map<String, Object>> fetchLatestItems() throws RSSException {
+        Map<String, Object> result = new HashMap<>();
+        result.put("latest feed data", rssFeedService.fetchLatestItems());
+        return ResponseEntity.status(HttpStatus.OK).body(result);
+    }
+
+    @GetMapping("/items-pagination")
+    @ApiOperation(value = "Retrieve latest rss feed 10 items from url",
+            notes = "Read and retrieve latest rss feed 10 items from public rss feed url.",
+            response = Map.class)
+    public ResponseEntity<ResultObject<FeedItem>> fetchPaginatedItems(@RequestParam(required = false, defaultValue = "10") Integer limit,
+                                                                      @RequestParam(required = false, defaultValue = "0") Integer offset,
+                                                                      @RequestParam(required = false, defaultValue = "id") String sort,
+                                                                      @RequestParam(required = false, defaultValue = "asc") String direction) throws RSSException {
+        return ResponseEntity.status(HttpStatus.OK).body(rssFeedService.fetchPaginatedItems(limit, offset, sort, direction));
     }
 }

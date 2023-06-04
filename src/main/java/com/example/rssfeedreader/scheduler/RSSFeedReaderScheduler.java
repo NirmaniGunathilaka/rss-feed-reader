@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.Scheduled;
+
 import java.util.List;
 
 @Configuration
@@ -18,7 +20,7 @@ public class RSSFeedReaderScheduler {
     @Autowired
     RSSFeedService rssFeedService;
 
-//    @Scheduled(cron = "${rss.feed.scheduler.cron}", zone = "${cron.zone}")
+    @Scheduled(cron = "${rss.feed.scheduler.cron}")
     public void feedReaderSchedulerJob() throws RSSException {
         logger.info("Job scheduler started");
         List<FeedItemInfo> itemInfos = rssFeedService.retrieveRssFeed("http://rss.cnn.com/rss/cnn_topstories.rss");
