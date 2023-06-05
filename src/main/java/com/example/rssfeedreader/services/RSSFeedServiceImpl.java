@@ -98,7 +98,7 @@ public class RSSFeedServiceImpl implements RSSFeedService {
                     hasUpdate = true;
                 }
 
-                if (!itemInfo.getPublicationDate().equals(existingFeedItem.getPublicationDate())) {
+                if (itemInfo.getPublicationDate() != null && !itemInfo.getPublicationDate().equals(existingFeedItem.getPublicationDate())) {
                     existingFeedItem.setPublicationDate(itemInfo.getPublicationDate());
                     hasUpdate = true;
                 }
