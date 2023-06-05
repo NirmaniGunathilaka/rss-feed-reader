@@ -66,7 +66,9 @@ public class RSSFeedController {
 
     @GetMapping("/items-pagination")
     @ApiOperation(value = "Retrieve paginated rss feed items from database",
-            notes = "Read and retrieve paginated rss feed items from database. Please provide asc/desc for direction.",
+            notes = "Read and retrieve paginated rss feed items from database. Please provide asc/desc for input \"direction\". " +
+                    "You can provide any of the value from {\"id\", \"description\", \"link\", " +
+                    "\"publicationDate\", \"createdTime\", \"modifiedTime\"} for input \"sort\".",
             response = Map.class)
     public ResponseEntity<ResultObject<FeedItem>> fetchPaginatedItems(
             @RequestParam(required = false, defaultValue = "10") Integer limit,
