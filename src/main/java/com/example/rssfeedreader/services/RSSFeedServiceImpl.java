@@ -1,6 +1,7 @@
 package com.example.rssfeedreader.services;
 
 import com.example.rssfeedreader.dtos.FeedItemInfo;
+import com.example.rssfeedreader.dtos.ItemInfo;
 import com.example.rssfeedreader.dtos.ResultObject;
 import com.example.rssfeedreader.entites.FeedItem;
 import com.example.rssfeedreader.exceptionhandling.exceptions.RSSFeedException;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -33,7 +35,7 @@ public class RSSFeedServiceImpl implements RSSFeedService {
     @Autowired
     private ModelMapper modelMapper;
 
-    public List<FeedItemInfo> retrieveRssFeed(String url) throws RSSFeedException {
+    public List<ItemInfo> retrieveRssFeed(String url) throws RSSFeedException {
         SyndFeed feed;
 
         try {
@@ -41,8 +43,8 @@ public class RSSFeedServiceImpl implements RSSFeedService {
             FeedFetcher feedFetcher = new HttpURLFeedFetcher();
             feed = feedFetcher.retrieveFeed(feedUrl);
         } catch (Exception e) {
-            logger.error("Error occurred while retrieving data. Error: ", e);
-            String message = String.format("Error occurred while retrieving data from feed url %s", url);
+            logger.error("Error occurred while retrieving data. Error: ", e.getMessage());
+            String message = String.format("Error occurred while retrieving data from feed url %s, Exception : ", url, e.getMessage());
             throw new RSSFeedException(message);
         }
 
@@ -52,63 +54,64 @@ public class RSSFeedServiceImpl implements RSSFeedService {
         }
 
         List<SyndEntry> entries = feed.getEntries();
-        List<FeedItemInfo> feedItemInfoList = new ArrayList<>();
+        List<ItemInfo> itemInfoList = new ArrayList<>();
 
         //looping through entries list
         for (SyndEntry entry : entries) {
-            FeedItemInfo feedItemInfo = new FeedItemInfo();
+            ItemInfo itemInfo = new ItemInfo();
             String title = entry.getTitle() != null ? entry.getTitle() : "";
             String link = entry.getLink() != null ? entry.getLink() : "";
             String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
-            Date publishedDate = entry.getPublishedDate() != null ? entry.getPublishedDate() : new Date(0);
-            feedItemInfo.setTitle(title);
-            feedItemInfo.setLink(link);
-            feedItemInfo.setDescription(description);
-            feedItemInfo.setPublicationDate(publishedDate);
-            feedItemInfoList.add(feedItemInfo);
+            LocalDateTime publishedDate = entry.getPublishedDate() != null ? entry.getPublishedDate().toInstant().atZone(ZoneId.of("GMT")).toLocalDateTime() : null;
+            itemInfo.setTitle(title);
+            itemInfo.setLink(link);
+            itemInfo.setDescription(description);
+            itemInfo.setPublicationDate(publishedDate);
+            itemInfoList.add(itemInfo);
         }
-        return feedItemInfoList;
+        return itemInfoList;
     }
 
-    public void storeFeedItems(List<FeedItemInfo> itemInfoList) {
+    @Transactional
+    public void storeFeedItems(List<ItemInfo> itemInfoList) {
         List<FeedItem> feedItems = feedItemRepository.findAll();
         logger.info("Retrieved feed item list size {}", feedItems.size());
 
-        for (FeedItemInfo feedItemInfo : itemInfoList) {
-            FeedItem existingFeedItem = feedItems.stream().filter(item -> item.getLink().equals(feedItemInfo.getLink()))
+        for (ItemInfo itemInfo : itemInfoList) {
+            FeedItem existingFeedItem = feedItems.stream().filter(item -> item.getLink().equals(itemInfo.getLink()))
                     .findAny()
                     .orElse(null);
             if (existingFeedItem != null) {
                 boolean hasUpdate = false;
-                if (!feedItemInfo.getTitle().equals(existingFeedItem.getTitle())) {
-                    existingFeedItem.setTitle(feedItemInfo.getTitle());
+                if (!itemInfo.getTitle().equals(existingFeedItem.getTitle())) {
+                    existingFeedItem.setTitle(itemInfo.getTitle());
                     hasUpdate = true;
                 }
 
-                if (!feedItemInfo.getDescription().equals(existingFeedItem.getDescription())) {
-                    existingFeedItem.setDescription(feedItemInfo.getDescription());
+                if (!itemInfo.getDescription().equals(existingFeedItem.getDescription())) {
+                    existingFeedItem.setDescription(itemInfo.getDescription());
                     hasUpdate = true;
                 }
 
-                if (!feedItemInfo.getLink().equals(existingFeedItem.getLink())) {
-                    existingFeedItem.setLink(feedItemInfo.getLink());
+                if (!itemInfo.getLink().equals(existingFeedItem.getLink())) {
+                    existingFeedItem.setLink(itemInfo.getLink());
                     hasUpdate = true;
                 }
 
-                if (!feedItemInfo.getPublicationDate().equals(existingFeedItem.getPublicationDate())) {
-                    existingFeedItem.setPublicationDate(feedItemInfo.getPublicationDate());
+                if (!itemInfo.getPublicationDate().equals(existingFeedItem.getPublicationDate())) {
+                    existingFeedItem.setPublicationDate(itemInfo.getPublicationDate());
                     hasUpdate = true;
                 }
 
                 if (hasUpdate) {
                     existingFeedItem.setModifiedTime(LocalDateTime.now(ZoneId.of("GMT")));
                     feedItemRepository.save(existingFeedItem);
-                    logger.debug("Feed item {} successfully saved in the database", existingFeedItem);
+                    logger.debug("Feed item {} successfully updated in the database", existingFeedItem);
                 }
 
             } else {
                 ModelMapper modelMapper = new ModelMapper();
-                FeedItem feedItem = modelMapper.map(feedItemInfo, FeedItem.class);
+                FeedItem feedItem = modelMapper.map(itemInfo, FeedItem.class);
                 feedItem.setCreatedTime(LocalDateTime.now(ZoneId.of("GMT")));
                 feedItem.setModifiedTime(LocalDateTime.now(ZoneId.of("GMT")));
                 feedItemRepository.save(feedItem);
@@ -135,45 +138,44 @@ public class RSSFeedServiceImpl implements RSSFeedService {
             }
 
         } catch (Exception e) {
-            logger.error("Error occurred while retrieving latest feed items. Error: ", e);
-            String message = String.format("Error occurred while retrieving latest feed items, exception %s", e.getMessage());
+            logger.error("Error occurred while retrieving latest feed items. Error: ", e.getMessage());
+            String message = String.format("Error occurred while retrieving latest feed items, Exception : %s", e.getMessage());
             throw new RSSFeedException(message);
         }
 
         return feedItemInfoList;
     }
 
-    public ResultObject<FeedItem> fetchPaginatedItems(Integer limit, Integer offset, String sort, String direction) throws RSSFeedException {
+    public ResultObject<FeedItem> fetchPaginatedItems(Integer limit, Integer offset, String sortBy, String direction) throws RSSFeedException {
         logger.info("Retrieve paginated rss feed items from database started");
 
         //Perform validation for inputs
-        validateInput(limit, offset, sort, direction);
+        validateInput(limit, offset, sortBy, direction);
         Page<FeedItem> feedItemPage;
 
         try {
             PageRequest pageRequest;
-            if (direction.equalsIgnoreCase("asc")) {
-                pageRequest = PageRequest.of(offset, limit, Sort.by(sort).ascending());
-            } else {
-                pageRequest = PageRequest.of(offset, limit, Sort.by(sort));
-            }
+            Sort sort = direction.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending()
+                    : Sort.by(sortBy).descending();
+            pageRequest = PageRequest.of(offset, limit, sort);
+
             feedItemPage = feedItemRepository.findAll(pageRequest);
             logger.info("Retrieved paginated feed items size {}", feedItemPage.getTotalElements());
         } catch (Exception e) {
-            logger.error("Error occurred while fetching paginated feed items from database, Error: ", e);
-            String message = String.format("Error occurred while fetching paginated feed items from database, exception %s", e.getMessage());
+            logger.error("Error occurred while fetching paginated feed items from database, Error: ", e.getMessage());
+            String message = String.format("Error occurred while fetching paginated feed items from database, Exception : %s", e.getMessage());
             throw new RSSFeedException(message);
         }
 
         if (feedItemPage.getContent().size() == 0) {
-            String msg = String.format("Paginated feed items data not found with limit %s, offset %s, sort %s, direction %s", limit, offset, sort, direction);
+            String msg = String.format("Paginated feed items data not found with limit %s, offset %s, sort %s, direction %s", limit, offset, sortBy, direction);
             throw new RSSFeedException(msg);
         }
 
         return new ResultObject<FeedItem>(feedItemPage.getContent(), feedItemPage.getTotalElements());
     }
 
-    private void validateInput(Integer limit, Integer offset, String sort, String direction) throws RSSFeedException {
+    private void validateInput(Integer limit, Integer offset, String sortBy, String direction) throws RSSFeedException {
         if (limit <= 0) {
             throw new RSSFeedException("Pagination attribute 'limit' must be greater than 0");
         }
@@ -183,8 +185,8 @@ public class RSSFeedServiceImpl implements RSSFeedService {
         }
 
         String[] validSortByValues = {"id", "description", "link", "publicationDate", "createdTime", "modifiedTime"};
-        if (!Arrays.asList(validSortByValues).contains(sort)) {
-            String msg = String.format("Provided input %s for sort is invalid", sort);
+        if (!Arrays.asList(validSortByValues).contains(sortBy)) {
+            String msg = String.format("Provided input %s for sort is invalid", sortBy);
             throw new RSSFeedException(msg);
         }
 

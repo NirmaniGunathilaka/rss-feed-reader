@@ -30,7 +30,7 @@ public class FeedItem {
     private String link;
 
     @Column(name = "PUBLICATION_DATE")
-    private Date publicationDate;
+    private LocalDateTime publicationDate;
 
     @Column(name = "CREATED_TIME")
     private LocalDateTime createdTime;

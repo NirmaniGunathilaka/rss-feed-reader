@@ -8,7 +8,7 @@ import java.util.List;
 
 @Repository
 public interface FeedItemRepository extends JpaRepository<FeedItem, Integer> {
-    @Query(value = "SELECT * FROM FEED_ITEM i ORDER BY i.CREATED_TIME DESC LIMIT 10", nativeQuery = true)
+    @Query(value = "SELECT * FROM FEED_ITEM I ORDER BY I.CREATED_TIME DESC LIMIT 10", nativeQuery = true)
     List<FeedItem> findTop10ByOrderByCreatedTimeAtDesc();
 
 }

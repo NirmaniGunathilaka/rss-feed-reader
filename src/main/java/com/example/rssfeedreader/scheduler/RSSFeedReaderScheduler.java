@@ -1,6 +1,6 @@
 package com.example.rssfeedreader.scheduler;
 
-import com.example.rssfeedreader.dtos.FeedItemInfo;
+import com.example.rssfeedreader.dtos.ItemInfo;
 import com.example.rssfeedreader.exceptionhandling.exceptions.RSSFeedException;
 import com.example.rssfeedreader.intf.RSSFeedService;
 import org.slf4j.Logger;
@@ -22,7 +22,15 @@ public class RSSFeedReaderScheduler {
 
     @Scheduled(cron = "${job.scheduler.cron}")
     public void feedReaderSchedulerJob() throws RSSFeedException {
-        List<FeedItemInfo> feedItemInfoList = rssFeedService.retrieveRssFeed("http://rss.cnn.com/rss/cnn_topstories.rss");
-        rssFeedService.storeFeedItems(feedItemInfoList);
+        logger.info("Job scheduler started");
+        try {
+            List<ItemInfo> itemInfoList = rssFeedService.retrieveRssFeed("http://rss.cnn.com/rss/cnn_topstories.rss");
+            rssFeedService.storeFeedItems(itemInfoList);
+        } catch (Exception e) {
+            logger.error("Error occurred in scheduler. Error: ", e);
+            String message = String.format("Error occurred in scheduler, Exception : %s", e.getMessage());
+            throw new RSSFeedException(message);
+        }
+        logger.info("Job scheduler ends");
     }
 }

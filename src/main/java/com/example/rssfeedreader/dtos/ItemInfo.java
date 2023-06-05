@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @ToString
 @RequiredArgsConstructor
 @ApiModel(description = "Details about the rss feed items")
-public class FeedItemInfo {
+public class ItemInfo {
     @ApiModelProperty("Title of the feed item")
     String title;
 
@@ -23,10 +23,4 @@ public class FeedItemInfo {
 
     @ApiModelProperty("Publication date of the feed item")
     LocalDateTime publicationDate;
-
-    @ApiModelProperty("Created date and time of the feed item")
-    LocalDateTime createdTime;
-
-    @ApiModelProperty("Publication date and time of the feed item")
-    LocalDateTime modifiedTime;
 }
