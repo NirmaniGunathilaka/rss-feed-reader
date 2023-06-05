@@ -1,7 +1,6 @@
 package com.example.rssfeedreader.dtos;
 
 import lombok.*;
-
 import java.util.List;
 
 @Getter
